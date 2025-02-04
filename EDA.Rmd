@@ -1,0 +1,94 @@
+---
+title: "EDA"
+author: "Jiashen Wang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = F}
+library(lubridate)
+library(zoo)
+```
+
+Load: Electricity load at the node of interest \newline
+Site-X-Temp: Temperature at a random location within the node of interest \newline
+Site-X-GHI: GHI at a random location within the node of interest. GHI is the total solar radiation incident on a horizontal surface \newline
+
+```{r, echo = F}
+train = read.csv("training.csv", header = T)
+train = data.frame(train[1:17545,])
+#train
+```
+
+```{r}
+# create a column of datetime
+train$datetime <- make_datetime(train$Year, train$Month, train$Day, train$Hour)
+# convert load column to dbl
+train$Load = as.numeric(gsub(",", "", train$Load))
+
+head(train)
+```
+
+```{r, echo = F}
+# Column Summary
+# for (i in 5:ncol(train)) {
+#   print(colnames(train)[i])
+#   print(typeof(train[,i]))
+#   print(summary(na.omit(train[,i])))
+#   print(sum(is.na(train[,i])))
+# }
+```
+
+```{r}
+# Load vs. Time
+plot(train$datetime, train$Load, type = "l", main = "Load vs. Time", 
+     ylab = "Load", xlab = "Time")
+
+plot(train$datetime[1:500], train$Load[1:500], type = "l", 
+     main = "Load vs. Time (1:500)", ylab = "Load", xlab = "Time")
+```
+\newpage
+
+```{r}
+# 5 Temp columns vs. Time
+temp_colnames = c("Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
+                  "Site.4.Temp", "Site.5.Temp")
+for (colname in temp_colnames) {
+  main_suffix = " vs. Time"
+  plot(train$datetime,train[,colname], main = paste(colname, main_suffix), 
+       type = "l", ylab = "Temp", xlab = "Time")
+}
+```
+\newpage
+
+```{r}
+# 5 GHI columns vs. Time
+GHI_colnames = c("Site.1.GHI", "Site.2.GHI", "Site.3.GHI", 
+                 "Site.4.GHI", "Site.5.GHI")
+for (colname in GHI_colnames) {
+  # compute rolling average over 24h window
+  ma = rollmean(train[,colname], fill=NA, k = 24)
+  
+  main_suffix = " vs. Time"
+  plot(train$datetime, train[,colname], main = paste(colname, main_suffix), 
+       type = "l", ylab = "GHI", xlab = "Time")
+  lines(train$datetime, ma, col = "red")
+}
+```
+\newpage
+
+```{r}
+# correlation
+plot(train$Site.1.Temp, train$Load, main = "Site.1.Temp vs. Load", 
+     ylab = "Load", xlab = "Temp")
+
+plot(train$Site.1.GHI, train$Load, main = "Site.1.GHI vs. Load", 
+     ylab = "Load", xlab = "GHI")
+plot(rollmean(train$Site.1.GHI, fill=NA, k = 24), train$Load, 
+     main = "Site.1.GHI Moving Average vs. Load", ylab = "Load", xlab = "GHI MA")
+```
+
