@@ -33,13 +33,22 @@ train = data.frame(train[1:17545,1:15])
 
 ```{r}
 # data pre-processing
+temp_colnames = c("Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
+                  "Site.4.Temp", "Site.5.Temp")
+GHI_colnames = c("Site.1.GHI", "Site.2.GHI", "Site.3.GHI", 
+                 "Site.4.GHI", "Site.5.GHI")
+
 # create a column of datetime
 train$datetime <- make_datetime(train$Year, train$Month, train$Day, train$Hour)
+
 # convert load column to dbl
 train$Load = as.numeric(gsub(",", "", train$Load))
-```
 
-```{r}
+# add columns of avg. Temp and avg. GHI
+train$Avg.Temp = rowMeans(train[,temp_colnames])
+train$Avg.GHI = rowMeans(train[,GHI_colnames])
+
+
 head(train)
 ```
 
@@ -50,14 +59,14 @@ head(train)
 plot(train$datetime, train$Load, type = "l", main = "Load vs. Time, All Data", 
      ylab = "Load", xlab = "Time")
 
-plot(train$datetime[1:8760], train$Load[1:8760], type = "l", main = "Load vs. Time, Year 1", 
-     ylab = "Load", xlab = "Time")
+# plot(train$datetime[1:8760], train$Load[1:8760], type = "l", 
+#      main = "Load vs. Time, Year 1", ylab = "Load", xlab = "Time")
 
 plot(train$datetime[1:744], train$Load[1:744], type = "l", 
-     main = "Load vs. Time, Year 1 January", ylab = "Load", xlab = "Time")
+     main = "Load, Year 1 January", ylab = "Load", xlab = "Time")
 
 plot(train$datetime[1:168], train$Load[1:168], type = "l", 
-     main = "Load vs. Time, Year 1 Week 1", ylab = "Load", xlab = "Time")
+     main = "Load, Year 1 Week 1", ylab = "Load", xlab = "Time")
 ```
 
 ```{r}
@@ -83,11 +92,8 @@ plot(hrs_avg_load, type = "l", main = "Avg. Load by Hour", ylim = c(1600,2800),
 
 ```{r, fig.width = 8, fig.height = 5}
 # 5 Temp columns vs. Time
-temp_colnames = c("Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
-                  "Site.4.Temp", "Site.5.Temp")
-
 par(mfrow = c(2, 3))
-for (colname in temp_colnames) {
+for (colname in c(temp_colnames, "Avg.Temp")) {
   main_suffix = " vs. Time"
   plot(train$datetime,train[,colname], main = paste(colname, main_suffix), 
        type = "l", ylab = "Temp", xlab = "Time", ylim = c(-5, 40))
@@ -97,11 +103,8 @@ for (colname in temp_colnames) {
 
 ```{r, fig,width = 8, fig.height = 5}
 # 5 GHI columns vs. Time
-GHI_colnames = c("Site.1.GHI", "Site.2.GHI", "Site.3.GHI", 
-                 "Site.4.GHI", "Site.5.GHI")
-
 par(mfrow = c(2,3))
-for (colname in GHI_colnames) {
+for (colname in c(GHI_colnames, "Avg.GHI")) {
   # compute rolling average over 24h window
   ma = rollmean(train[,colname], fill=NA, k = 24)
   
@@ -115,18 +118,16 @@ for (colname in GHI_colnames) {
 
 ```{r}
 # correlation
-pairs(train[1:1000,c("Load", "Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
-                  "Site.4.Temp", "Site.5.Temp")])
-pairs(train[1:1000,c("Load", "Site.1.GHI", "Site.2.GHI", 
-                  "Site.3.GHI", "Site.4.GHI", "Site.5.GHI")])
+pairs(train[1:1000,c("Load", temp_colnames)])
+pairs(train[1:1000,c("Load", GHI_colnames)])
 # 5 locations' temps are highly correlated with one another
 # Similar with GHIs, even higher correlation
 # Possible slight negative relationship between GHI and Load
 
-plot(train$Site.1.Temp, train$Load, main = "Site.1.Temp vs. Load", 
+plot(train$Avg.Temp, train$Load, main = "Avg. Temp vs. Load", 
      ylab = "Load", xlab = "Temp")
 
-plot(train$Site.1.GHI, train$Load, main = "Site.1.GHI vs. Load", 
+plot(train$Avg.GHI, train$Load, main = "Avg. GHI vs. Load", 
      ylab = "Load", xlab = "GHI")
 plot(rollmean(train$Site.1.GHI, fill=NA, k = 24), train$Load, 
      main = "Site.1.GHI Moving Average vs. Load", ylab = "Load", xlab = "GHI MA")
