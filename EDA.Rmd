@@ -6,30 +6,40 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r, echo = F}
+```{r, echo = F, warning = F, message = F}
 library(lubridate)
 library(zoo)
+library(knitr)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
 ```
 
-Load: Electricity load at the node of interest \newline
-Site-X-Temp: Temperature at a random location within the node of interest \newline
-Site-X-GHI: GHI at a random location within the node of interest. GHI is the total solar radiation incident on a horizontal surface \newline
+## Variables:
+**Load**: Electricity load at the node of interest
+
+**Site-X-Temp**: Temperature at a random location within the node of interest
+
+**Site-X-GHI**: GHI at a random location within the node of interest. GHI is the total solar radiation incident on a horizontal surface
 
 ```{r, echo = F}
+# load data
 train = read.csv("training.csv", header = T)
-train = data.frame(train[1:17545,])
-#train
+train = data.frame(train[1:17545,][1:15])
 ```
 
 ```{r}
+# data pre-processing
 # create a column of datetime
 train$datetime <- make_datetime(train$Year, train$Month, train$Day, train$Hour)
 # convert load column to dbl
 train$Load = as.numeric(gsub(",", "", train$Load))
+```
 
+```{r}
 head(train)
 ```
 
@@ -43,24 +53,87 @@ head(train)
 # }
 ```
 
+## EDA plots
+
 ```{r}
 # Load vs. Time
-plot(train$datetime, train$Load, type = "l", main = "Load vs. Time", 
+plot(train$datetime, train$Load, type = "l", main = "Load vs. Time, All Data", 
      ylab = "Load", xlab = "Time")
 
-plot(train$datetime[1:500], train$Load[1:500], type = "l", 
-     main = "Load vs. Time (1:500)", ylab = "Load", xlab = "Time")
+plot(train$datetime[1:8760], train$Load[1:8760], type = "l", main = "Load vs. Time, Year 1", 
+     ylab = "Load", xlab = "Time")
+
+plot(train$datetime[1:744], train$Load[1:744], type = "l", 
+     main = "Load vs. Time, Year 1 January", ylab = "Load", xlab = "Time")
+
+plot(train$datetime[1:168], train$Load[1:168], type = "l", 
+     main = "Load vs. Time, Year 1 Week 1", ylab = "Load", xlab = "Time")
+```
+
+```{r}
+p_year1 <- train |>
+  filter(Year == 1) |>
+  ggplot(aes(x = datetime, y = Load)) +
+  geom_line() + # Adding a line plot
+  labs(
+    title = "Load vs. Time, Year 1",
+    x = "Time",
+    y = "Load"
+  )
+
+p_year2 <- train |>
+  filter(Year == 2) |>
+  ggplot(aes(x = datetime, y = Load)) +
+  geom_line() + # Adding a line plot
+  labs(
+    title = "Load vs. Time, Year 2",
+    x = "Time",
+    y = "Load"
+  )
+  
+
+p_year1 | p_year2
+```
+
+```{r, eval=FALSE}
+plots_list <- list()  # initialize list
+
+# loop through each month
+for (month in 1:12) {
+  # filter specific month
+  plot_data <- train %>%
+    filter(Year == 1, Month == month)
+  
+  # plot
+  p <- ggplot(plot_data, aes(x = datetime, y = Load)) +
+    geom_line() +
+    labs(
+      title = month,
+      x = "Time",
+      y = "Load"
+    ) +
+    scale_y_continuous(limits = c(1000, 4500))
+  
+  # append to list
+  plots_list[[month]] <- p
+}
+
+plot_grid <- wrap_plots(plots_list, ncol = 6)
+
+plot_grid
 ```
 \newpage
 
-```{r}
+```{r fig,width = 10, fig.height = 5}
 # 5 Temp columns vs. Time
 temp_colnames = c("Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
                   "Site.4.Temp", "Site.5.Temp")
+
+par(mfrow = c(1, 5))
 for (colname in temp_colnames) {
   main_suffix = " vs. Time"
   plot(train$datetime,train[,colname], main = paste(colname, main_suffix), 
-       type = "l", ylab = "Temp", xlab = "Time")
+       type = "l", ylab = "Temp", xlab = "Time", ylim = c(-10, 40))
 }
 ```
 \newpage
@@ -69,13 +142,15 @@ for (colname in temp_colnames) {
 # 5 GHI columns vs. Time
 GHI_colnames = c("Site.1.GHI", "Site.2.GHI", "Site.3.GHI", 
                  "Site.4.GHI", "Site.5.GHI")
+
+par(mfrow = c(1,5))
 for (colname in GHI_colnames) {
   # compute rolling average over 24h window
   ma = rollmean(train[,colname], fill=NA, k = 24)
   
   main_suffix = " vs. Time"
   plot(train$datetime, train[,colname], main = paste(colname, main_suffix), 
-       type = "l", ylab = "GHI", xlab = "Time")
+       type = "l", ylab = "GHI", xlab = "Time", ylim = c(0, 1100))
   lines(train$datetime, ma, col = "red")
 }
 ```
