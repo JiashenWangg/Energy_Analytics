@@ -71,6 +71,26 @@ plot(train$datetime[1:168], train$Load[1:168], type = "l",
 ```
 
 ```{r}
+# Average load by month and hour
+mon_avg_load = c()
+for (m in 1:12) {
+  mon_avg_load = c(mon_avg_load, mean(train[which(train$Month == m),"Load"]))
+}
+plot(mon_avg_load, type = "l", main = "Avg. Load by Month", ylim = c(1600,2800),
+     xlab = "Month", ylab = "Avg. Load")
+# Load highest in summer, lowest in April and May
+
+hrs_avg_load = c()
+for (h in 1:24) {
+  hrs_avg_load = c(hrs_avg_load, mean(train[which(train$Hour == h),"Load"]))
+}
+plot(hrs_avg_load, type = "l", main = "Avg. Load by Hour", ylim = c(1600,2800),
+     xlab = "Hour", ylab = "Avg. Load")
+# Two peaks: highest from 17 to 21, smaller one at 7 & 8
+# Lowest 3am/4am and 11am/12pm
+```
+
+```{r}
 p_year1 <- train |>
   filter(Year == 1) |>
   ggplot(aes(x = datetime, y = Load)) +
@@ -158,6 +178,14 @@ for (colname in GHI_colnames) {
 
 ```{r}
 # correlation
+pairs(train[1:1000,c("Load", "Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
+                  "Site.4.Temp", "Site.5.Temp")])
+pairs(train[1:1000,c("Load", "Site.1.GHI", "Site.2.GHI", 
+                  "Site.3.GHI", "Site.4.GHI", "Site.5.GHI")])
+# 5 locations' temps are highly correlated with one another
+# Similar with GHIs, even higher correlation
+# Possible slight negative relationship between GHI and Load
+
 plot(train$Site.1.Temp, train$Load, main = "Site.1.Temp vs. Load", 
      ylab = "Load", xlab = "Temp")
 
