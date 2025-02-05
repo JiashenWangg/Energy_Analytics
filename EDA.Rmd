@@ -28,7 +28,7 @@ library(patchwork)
 ```{r, echo = F}
 # load data
 train = read.csv("training.csv", header = T)
-train = data.frame(train[1:17545,][1:15])
+train = data.frame(train[1:17545,1:15])
 ```
 
 ```{r}
@@ -41,16 +41,6 @@ train$Load = as.numeric(gsub(",", "", train$Load))
 
 ```{r}
 head(train)
-```
-
-```{r, echo = F}
-# Column Summary
-# for (i in 5:ncol(train)) {
-#   print(colnames(train)[i])
-#   print(typeof(train[,i]))
-#   print(summary(na.omit(train[,i])))
-#   print(sum(is.na(train[,i])))
-# }
 ```
 
 ## EDA plots
@@ -89,81 +79,28 @@ plot(hrs_avg_load, type = "l", main = "Avg. Load by Hour", ylim = c(1600,2800),
 # Two peaks: highest from 17 to 21, smaller one at 7 & 8
 # Lowest 3am/4am and 11am/12pm
 ```
-
-```{r}
-p_year1 <- train |>
-  filter(Year == 1) |>
-  ggplot(aes(x = datetime, y = Load)) +
-  geom_line() + # Adding a line plot
-  labs(
-    title = "Load vs. Time, Year 1",
-    x = "Time",
-    y = "Load"
-  )
-
-p_year2 <- train |>
-  filter(Year == 2) |>
-  ggplot(aes(x = datetime, y = Load)) +
-  geom_line() + # Adding a line plot
-  labs(
-    title = "Load vs. Time, Year 2",
-    x = "Time",
-    y = "Load"
-  )
-  
-
-p_year1 | p_year2
-```
-
-```{r, eval=FALSE}
-plots_list <- list()  # initialize list
-
-# loop through each month
-for (month in 1:12) {
-  # filter specific month
-  plot_data <- train %>%
-    filter(Year == 1, Month == month)
-  
-  # plot
-  p <- ggplot(plot_data, aes(x = datetime, y = Load)) +
-    geom_line() +
-    labs(
-      title = month,
-      x = "Time",
-      y = "Load"
-    ) +
-    scale_y_continuous(limits = c(1000, 4500))
-  
-  # append to list
-  plots_list[[month]] <- p
-}
-
-plot_grid <- wrap_plots(plots_list, ncol = 6)
-
-plot_grid
-```
 \newpage
 
-```{r fig,width = 10, fig.height = 5}
+```{r, fig.width = 8, fig.height = 5}
 # 5 Temp columns vs. Time
 temp_colnames = c("Site.1.Temp", "Site.2.Temp", "Site.3.Temp", 
                   "Site.4.Temp", "Site.5.Temp")
 
-par(mfrow = c(1, 5))
+par(mfrow = c(2, 3))
 for (colname in temp_colnames) {
   main_suffix = " vs. Time"
   plot(train$datetime,train[,colname], main = paste(colname, main_suffix), 
-       type = "l", ylab = "Temp", xlab = "Time", ylim = c(-10, 40))
+       type = "l", ylab = "Temp", xlab = "Time", ylim = c(-5, 40))
 }
 ```
 \newpage
 
-```{r}
+```{r, fig,width = 8, fig.height = 5}
 # 5 GHI columns vs. Time
 GHI_colnames = c("Site.1.GHI", "Site.2.GHI", "Site.3.GHI", 
                  "Site.4.GHI", "Site.5.GHI")
 
-par(mfrow = c(1,5))
+par(mfrow = c(2,3))
 for (colname in GHI_colnames) {
   # compute rolling average over 24h window
   ma = rollmean(train[,colname], fill=NA, k = 24)
